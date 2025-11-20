@@ -6,20 +6,25 @@ public class Parcours
     public string NomParcours { get; set; } = string.Empty;
     public int AnneeFormation { get; set; }
     
-    // Collection d'étudiants (pour la relation OneToMany)
+    // OneToMany : un parcours contient plusieurs étudiants
+    public List<Etudiant>? Inscrits { get; set; } = new(); 
     public List<Etudiant> Etudiants { get; set; } = new List<Etudiant>();
+    
+    // ManyToMany : un parcours contient plusieurs UEs  
+    public List<Ue>? UesEnseignees { get; set; } = new();
 
-    // ⬇️ AJOUT : Constructeur par défaut (nécessaire pour EF Core)
+    // Constructeur par défaut (nécessaire pour EF Core)
     public Parcours()
     {
     }
 
-    // ⬇️ AJOUT : Constructeur avec paramètres
+    // Constructeur avec paramètres
     public Parcours(string nomParcours, int anneeFormation)
     {
         NomParcours = nomParcours;
         AnneeFormation = anneeFormation;
         Etudiants = new List<Etudiant>();
+        UesEnseignees = new();
     }
 
     public override string ToString()

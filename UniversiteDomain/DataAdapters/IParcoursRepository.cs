@@ -14,8 +14,14 @@ public interface IParcoursRepository
     Task<List<Parcours>> FindByConditionAsync(Expression<Func<Parcours, bool>> condition);
     Task<List<Parcours>> FindAllAsync();
     Task SaveChangesAsync();
+    
+    // Méthodes pour ajouter des Étudiants
     Task<Parcours> AddEtudiantAsync(Parcours parcours, Etudiant etudiant);
     Task<Parcours> AddEtudiantAsync(long idParcours, long idEtudiant);
-    Task<Parcours> AddEtudiantAsync(Parcours ? parcours, List<Etudiant> etudiants);
+    Task<Parcours> AddEtudiantAsync(Parcours? parcours, List<Etudiant> etudiants);
     Task<Parcours> AddEtudiantAsync(long idParcours, long[] idEtudiants);
+    
+    // Méthodes pour ajouter des UEs (ManyToMany)
+    Task<Parcours> AddUeAsync(long idParcours, long idUe);
+    Task<Parcours> AddUeAsync(long idParcours, long[] idUes);
 }

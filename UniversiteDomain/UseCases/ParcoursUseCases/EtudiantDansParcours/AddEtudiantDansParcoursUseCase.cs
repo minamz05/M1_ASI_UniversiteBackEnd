@@ -1,10 +1,10 @@
 ﻿using UniversiteDomain.DataAdapters;
+using UniversiteDomain.DataAdapters.DataAdaptersFactory;
 using UniversiteDomain.Entities;
 using UniversiteDomain.Exceptions.EtudiantExceptions;
 using UniversiteDomain.Exceptions.ParcoursExceptions;
 
 namespace UniversiteDomain.UseCases.ParcoursUseCases.EtudiantDansParcours;
-
 public class AddEtudiantDansParcoursUseCase(IRepositoryFactory repositoryFactory)
 {
     // Rajout d'un étudiant dans un parcours

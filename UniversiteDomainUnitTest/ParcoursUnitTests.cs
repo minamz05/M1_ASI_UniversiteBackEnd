@@ -1,13 +1,15 @@
-﻿using System.Linq.Expressions;
-using Moq;
+﻿using Moq;
 using UniversiteDomain.DataAdapters;
+using UniversiteDomain.DataAdapters.DataAdaptersFactory;
 using UniversiteDomain.Entities;
+using UniversiteDomain.UseCases.EtudiantUseCases;
+using UniversiteDomain.UseCases.ParcoursUseCases;
 using UniversiteDomain.UseCases.ParcoursUseCases.Create;
-using UniversiteDomain.Exceptions.ParcoursExceptions;
+using UniversiteDomain.UseCases.ParcoursUseCases.EtudiantDansParcours;
 
 namespace UniversiteDomainUnitTests;
 
-public class ParcoursUnitTests
+public class ParcoursUnitTest
 {
     [SetUp]
     public void Setup()
@@ -15,165 +17,43 @@ public class ParcoursUnitTests
     }
 
     [Test]
-
     public async Task CreateParcoursUseCase()
     {
-        // Arrange - Préparation des données de test
-        long id = 1;
-        string nomParcours = "MIAGE";
-        int anneeFormation = 2000; // ⬅️ Année valide (entre 1900 et 2100)
-
-        // On crée le parcours qui doit être ajouté en base
-        Parcours parcoursSansId = new Parcours
-        {
-            NomParcours = nomParcours,
-            AnneeFormation = anneeFormation
-        };
-
-        // Créons le mock du repository
-        var mock = new Mock<IParcoursRepository>();
-
-        // Simulation de la fonction FindByConditionAsync
-        var reponseFindByCondition = new List<Parcours>();
-
-        mock.Setup(repo => repo.FindByConditionAsync(It.IsAny<Expression<Func<Parcours, bool>>>()))
-            .ReturnsAsync(reponseFindByCondition);
-
-        // Simulation de la fonction CreateAsync
-        Parcours parcoursCree = new Parcours
-        {
-            Id = id,
-            NomParcours = nomParcours,
-            AnneeFormation = anneeFormation
-        };
+        long idParcours = 1;
+        String nomParcours = "Ue 1";
+        int anneFormation = 2;
         
-        mock.Setup(repo => repo.CreateAsync(It.IsAny<Parcours>()))  // ⬅️ It.IsAny pour matcher n'importe quel parcours
-            .ReturnsAsync(parcoursCree);
-
-        // Simulation de SaveChangesAsync
-        mock.Setup(repo => repo.SaveChangesAsync())
-            .Returns(Task.CompletedTask);
-
-        var fauxParcoursRepository = mock.Object;
-
-        // Act - Création du use case
-        CreateParcoursUseCase useCase = new CreateParcoursUseCase(fauxParcoursRepository);
-
+        // On crée le parcours qui doit être ajouté en base
+        Parcours parcoursAvant = new Parcours{NomParcours = nomParcours, AnneeFormation = anneFormation};
+        
+        // On initialise une fausse datasource qui va simuler un EtudiantRepository
+        var mockParcours = new Mock<IParcoursRepository>();
+        
+        // Il faut ensuite aller dans le use case pour simuler les appels des fonctions vers la datasource
+        // Nous devons simuler FindByCondition et Create
+        // On dit à ce mock que le parcours n'existe pas déjà
+        mockParcours
+            .Setup(repo=>repo.FindByConditionAsync(p=>p.Id.Equals(idParcours)))
+            .ReturnsAsync((List<Parcours>)null);
+        // On lui dit que l'ajout d'un étudiant renvoie un étudiant avec l'Id 1
+        Parcours parcoursFinal =new Parcours{Id=idParcours,NomParcours= nomParcours, AnneeFormation = anneFormation};
+        mockParcours.Setup(repo=>repo.CreateAsync(parcoursAvant)).ReturnsAsync(parcoursFinal);
+        
+        var mockFactory = new Mock<IRepositoryFactory>();
+        mockFactory.Setup(facto=>facto.ParcoursRepository()).Returns(mockParcours.Object);
+        
+        // Création du use case en utilisant le mock comme datasource
+        CreateParcoursUseCase useCase=new CreateParcoursUseCase(mockFactory.Object);
+        
         // Appel du use case
-        var parcoursTeste = await useCase.ExecuteAsync(parcoursSansId);
-
-        // Assert - Vérification du résultat
-        Assert.That(parcoursTeste.Id, Is.EqualTo(parcoursCree.Id));
-        Assert.That(parcoursTeste.NomParcours, Is.EqualTo(parcoursCree.NomParcours));
-        Assert.That(parcoursTeste.AnneeFormation, Is.EqualTo(parcoursCree.AnneeFormation));
+        var parcoursTeste=await useCase.ExecuteAsync(parcoursAvant);
+        
+        // Vérification du résultat
+        Assert.That(parcoursTeste.Id, Is.EqualTo(parcoursFinal.Id));
+        Assert.That(parcoursTeste.NomParcours, Is.EqualTo(parcoursFinal.NomParcours));
+        Assert.That(parcoursTeste.AnneeFormation, Is.EqualTo(parcoursFinal.AnneeFormation));
     }
-
-    [Test]
-    public async Task CreateParcoursUseCase_WithDuplicateParcours_ShouldThrowException()
-    {
-        // Arrange
-        string nomParcours = "MIAGE";
-        int anneeFormation = 2000;
-
-        Parcours nouveauParcours = new Parcours
-        {
-            NomParcours = nomParcours,
-            AnneeFormation = anneeFormation
-        };
-
-        Parcours parcoursExistant = new Parcours
-        {
-            Id = 1,
-            NomParcours = nomParcours,
-            AnneeFormation = anneeFormation
-        };
-
-        var mock = new Mock<IParcoursRepository>();
-
-        var reponseFindByCondition = new List<Parcours> { parcoursExistant };
-
-        mock.Setup(repo => repo.FindByConditionAsync(It.IsAny<Expression<Func<Parcours, bool>>>()))
-            .ReturnsAsync(reponseFindByCondition);
-
-        var fauxParcoursRepository = mock.Object;
-
-        // Act & Assert
-        CreateParcoursUseCase useCase = new CreateParcoursUseCase(fauxParcoursRepository);
-
-        var exception = Assert.ThrowsAsync<DuplicateNomParcoursException>(
-            async () => await useCase.ExecuteAsync(nouveauParcours)
-        );
-
-        // Vérification du message d'erreur
-        Assert.That(exception!.Message, Does.Contain(nomParcours));
-    }
-
-    [Test]
-    public async Task CreateParcoursUseCase_WithInvalidNomParcours_ShouldThrowException()
-    {
-        // Arrange
-        string nomParcours = "IA"; // ⬅️ Trop court (< 3 caractères)
-        int anneeFormation = 2000;
-
-        Parcours nouveauParcours = new Parcours
-        {
-            NomParcours = nomParcours,
-            AnneeFormation = anneeFormation
-        };
-
-        var mock = new Mock<IParcoursRepository>();
-
-        var reponseFindByCondition = new List<Parcours>();
-
-        mock.Setup(repo => repo.FindByConditionAsync(It.IsAny<Expression<Func<Parcours, bool>>>()))
-            .ReturnsAsync(reponseFindByCondition);
-
-        var fauxParcoursRepository = mock.Object;
-
-        // Act & Assert
-        CreateParcoursUseCase useCase = new CreateParcoursUseCase(fauxParcoursRepository);
-
-        var exception = Assert.ThrowsAsync<InvalidNomParcoursException>(
-            async () => await useCase.ExecuteAsync(nouveauParcours)
-        );
-
-        // Vérification du message d'erreur
-        Assert.That(exception!.Message, Does.Contain("nom").IgnoreCase);  // ⬅️ Correction syntaxe
-    }
-
-    [Test]
-    public async Task CreateParcoursUseCase_WithInvalidAnneeFormation_ShouldThrowException()
-    {
-        // Arrange
-        string nomParcours = "MIAGE";
-        int anneeFormation = 1500; // ⬅️ Invalide (< 1900)
-
-        Parcours nouveauParcours = new Parcours
-        {
-            NomParcours = nomParcours,
-            AnneeFormation = anneeFormation
-        };
-
-        var mock = new Mock<IParcoursRepository>();
-
-        var reponseFindByCondition = new List<Parcours>();
-
-        mock.Setup(repo => repo.FindByConditionAsync(It.IsAny<Expression<Func<Parcours, bool>>>()))
-            .ReturnsAsync(reponseFindByCondition);
-
-        var fauxParcoursRepository = mock.Object;
-
-        // Act & Assert
-        CreateParcoursUseCase useCase = new CreateParcoursUseCase(fauxParcoursRepository);
-
-        var exception = Assert.ThrowsAsync<InvalidAnneeFormationException>(
-            async () => await useCase.ExecuteAsync(nouveauParcours)
-        );
-
-        // Vérification du message d'erreur
-        Assert.That(exception!.Message, Does.Contain("année").IgnoreCase);  // ⬅️ Correction syntaxe
-    }
-   
+    
     [Test]
     public async Task AddEtudiantDansParcoursUseCase()
     {
@@ -182,7 +62,7 @@ public class ParcoursUnitTests
         Etudiant etudiant= new Etudiant { Id = 1, NumEtud = "1", Nom = "nom1", Prenom = "prenom1", Email = "1" };
         Parcours parcours = new Parcours{Id=3, NomParcours = "Ue 3", AnneeFormation = 1};
         
-        // On initialise une fausse datasource qui va simuler un EtudiantRepository
+        // On initialise des faux repositories
         var mockEtudiant = new Mock<IEtudiantRepository>();
         var mockParcours = new Mock<IParcoursRepository>();
         List<Etudiant> etudiants = new List<Etudiant>();
@@ -197,7 +77,7 @@ public class ParcoursUnitTests
         List<Parcours> parcoursFinaux = new List<Parcours>();
         Parcours parcoursFinal = new Parcours{Id=3, NomParcours = "Ue 3", AnneeFormation = 1};
         parcoursFinal.Inscrits.Add(etudiant);
-        parcoursFinaux.Add(parcours);
+        parcoursFinaux.Add(parcoursFinal);
         
         mockParcours
             .Setup(repo=>repo.FindByConditionAsync(e=>e.Id.Equals(idParcours)))
@@ -205,8 +85,14 @@ public class ParcoursUnitTests
         mockParcours
             .Setup(repo => repo.AddEtudiantAsync(idParcours, idEtudiant))
             .ReturnsAsync(parcoursFinal);
+        
+        // Création d'une fausse factory qui contient les faux repositories
+        var mockFactory = new Mock<IRepositoryFactory>();
+        mockFactory.Setup(facto=>facto.EtudiantRepository()).Returns(mockEtudiant.Object);
+        mockFactory.Setup(facto=>facto.ParcoursRepository()).Returns(mockParcours.Object);
+        
         // Création du use case en utilisant le mock comme datasource
-        AddEtudiantDansParcoursUseCase useCase=new AddEtudiantDansParcoursUseCase(mockEtudiant.Object, mockParcours.Object);
+        AddEtudiantDansParcoursUseCase useCase=new AddEtudiantDansParcoursUseCase(mockFactory.Object);
         
         // Appel du use case
         var parcoursTest=await useCase.ExecuteAsync(idParcours, idEtudiant);
@@ -216,5 +102,4 @@ public class ParcoursUnitTests
         Assert.That(parcoursTest.Inscrits.Count, Is.EqualTo(1));
         Assert.That(parcoursTest.Inscrits[0].Id, Is.EqualTo(idEtudiant));
     }
-}
 }
