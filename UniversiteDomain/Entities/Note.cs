@@ -8,6 +8,10 @@ public class Note
     // Clés étrangères pour la classe d'association
     public long EtudiantId { get; set; }
     public long UeId { get; set; }
+    
+    // Propriétés de navigation (pour EF Core)
+    public Etudiant? Etudiant { get; set; }
+    public Ue? Ue { get; set; }
 
     public Note()
     {

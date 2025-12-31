@@ -8,8 +8,11 @@ public class Ue
     
     // ManyToMany : une Ue est enseignée dans plusieurs parcours
     public List<Parcours>? EnseigneeDans { get; set; } = new();
+    
+    // OneToMany : une UE a plusieurs notes
+    public List<Note> Notes { get; set; } = new();
 
-    // Constructeur par défaut (nécessaire pour EF Core)
+    // Constructeur par défaut
     public Ue()
     {
     }
@@ -20,6 +23,7 @@ public class Ue
         NumeroUe = numeroUe;
         Intitule = intitule;
         EnseigneeDans = new();
+        Notes = new();
     }
 
     public override string ToString()
