@@ -30,7 +30,11 @@ public class CreateEtudiantUseCase(IRepositoryFactory repositoryFactory)
         await repositoryFactory.SaveChangesAsync();
         return et;
     }
-    
+    public bool IsAuthorized(string role)
+    {
+        // Seuls les Responsables et la Scolarité peuvent créer des étudiants
+        return role == Roles.Responsable || role == Roles.Scolarite;
+    } 
     private async Task CheckBusinessRules(Etudiant etudiant)
     {
         // Vérification des paramètres

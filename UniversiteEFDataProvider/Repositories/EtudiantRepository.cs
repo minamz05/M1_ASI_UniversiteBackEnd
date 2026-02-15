@@ -1,61 +1,63 @@
 using UniversiteDomain.DataAdapters;
 using UniversiteDomain.Entities;
 using UniversiteEFDataProvider.Data;
+using Microsoft.EntityFrameworkCore;
+
 namespace UniversiteEFDataProvider.Repositories;
 
 public class EtudiantRepository(UniversiteDbContext context) : Repository<Etudiant>(context), IEtudiantRepository
 {
-    public async Task<Etudiant> AddParcoursAsync(Etudiant etudiant, Parcours parcours)
+    public async Task AddParcoursAsync(Etudiant etudiant, Parcours parcours)
     {
-        ArgumentNullException.ThrowIfNull(etudiant);
-        ArgumentNullException.ThrowIfNull(parcours);
-        
-        var e = await Context.Etudiants.FindAsync(etudiant.Id);
-        var p = await Context.Parcours.FindAsync(parcours.Id);
-        
-        if (e != null && p != null)
-        {
-            e.ParcoursSuivi = p;
-            await Context.SaveChangesAsync();
-        }
-        
-        return e!;
+        await AddParcoursAsync(etudiant.Id, parcours.Id);
     }
 
-    public async Task<Etudiant> AddParcoursAsync(long idEtudiant, long idParcours)
+    public async Task AddParcoursAsync(long idEtudiant, long idParcours)
     {
-        ArgumentNullException.ThrowIfNull(idEtudiant);
-        ArgumentNullException.ThrowIfNull(idParcours);
+        Etudiant? etudiant = await FindAsync(idEtudiant);
+        Parcours? parcours = await context.Parcours!.FindAsync(idParcours);
         
-        var e = await Context.Etudiants.FindAsync(idEtudiant);
-        var p = await Context.Parcours.FindAsync(idParcours);
-        
-        if (e != null && p != null)
+        if (etudiant != null && parcours != null)
         {
-            e.ParcoursSuivi = p;
-            await Context.SaveChangesAsync();
+            etudiant.ParcoursSuivi = parcours;
+            await context.SaveChangesAsync();
         }
-        
-        return e!;
     }
 
-    public async Task<Etudiant> AddParcoursAsync(Etudiant? etudiant, List<Parcours> parcours)
+    public async Task AddParcoursAsync(Etudiant etudiant, Parcours[] parcours)
     {
-        // Pour un étudiant, un seul parcours, donc on prend le premier
-        if (etudiant != null && parcours.Count > 0)
+        foreach (Parcours p in parcours)
         {
-            return await AddParcoursAsync(etudiant, parcours[0]);
+            await AddParcoursAsync(etudiant, p);
         }
-        return etudiant!;
     }
 
-    public async Task<Etudiant> AddParcoursAsync(long idEtudiant, long[] idParcours)
+    public async Task AddParcoursAsync(long idEtudiant, long[] idParcours)
     {
-        // Pour un étudiant, un seul parcours, donc on prend le premier
-        if (idParcours.Length > 0)
+        foreach (long id in idParcours)
         {
-            return await AddParcoursAsync(idEtudiant, idParcours[0]);
+            await AddParcoursAsync(idEtudiant, id);
         }
-        return (await Context.Etudiants.FindAsync(idEtudiant))!;
+    }
+    
+    public async Task<Etudiant?> FindEtudiantCompletAsync(long idEtudiant)
+    {
+        ArgumentNullException.ThrowIfNull(Context.Etudiants);
+        return await Context.Etudiants
+            .Include(e => e.ParcoursSuivi)
+            .Include(e => e.NotesObtenues)
+            .ThenInclude(n => n.Ue)
+            .FirstOrDefaultAsync(e => e.Id == idEtudiant);
+    }
+
+    // ✅ RENOMMÉE POUR LA COHÉRENCE
+    public async Task<List<Etudiant>> FindAllEtudiantsCompletAsync()
+    {
+        ArgumentNullException.ThrowIfNull(Context.Etudiants);
+        return await Context.Etudiants
+            .Include(e => e.ParcoursSuivi)
+            .Include(e => e.NotesObtenues)
+            .ThenInclude(n => n.Ue)
+            .ToListAsync();
     }
 }

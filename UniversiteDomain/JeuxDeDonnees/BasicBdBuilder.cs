@@ -1,13 +1,12 @@
 using UniversiteDomain.DataAdapters.DataAdaptersFactory;
 using UniversiteDomain.Entities;
-//using UniversiteDomain.Entities.SecurityEntities;
+using UniversiteDomain.JeuxDeDonnees;
 using UniversiteDomain.UseCases.EtudiantUseCases.Create;
-//using UniversiteDomain.UseCases.NotesUseCases;
 using UniversiteDomain.UseCases.NoteUseCases.Create;
 using UniversiteDomain.UseCases.ParcoursUseCases.Create;
 using UniversiteDomain.UseCases.ParcoursUseCases.EtudiantDansParcours;
 using UniversiteDomain.UseCases.ParcoursUseCases.UeDansParcours;
-//using UniversiteDomain.UseCases.SecurityUseCases;//
+using UniversiteDomain.UseCases.SecurityUseCases.Create;
 using UniversiteDomain.UseCases.UeUseCases.Create;
 
 namespace UniversiteDomain.JeuxDeDonnees;
@@ -18,12 +17,12 @@ public class BasicBdBuilder(IRepositoryFactory repositoryFactory) : BdBuilder(re
 
     private readonly Etudiant[] _etudiants =
     [
-        new Etudiant { Id=1,NumEtud = "03BDKZ65", Nom = "Dupont", Prenom = "Antoine", Email = "antoine.dupont@etud.u-picardie.fr" },
-        new Etudiant { Id=2,NumEtud = "JEIZ03JZ", Nom = "Ntamak", Prenom = "Romain", Email = "roman.ntamak@etud.u-picardie.fr" },
-        new Etudiant { Id=3,NumEtud = "62830483", Nom = "Barassi", Prenom = "Pierre-Louis", Email = "pierre-louis.barassi@etud.u-picardie.fr" },
-        new Etudiant { Id=4,NumEtud = "J6HZK922", Nom = "Jelong", Prenom = "Antony", Email = "antony.jelong@etud.u-picardie.fr" },
-        new Etudiant { Id=5,NumEtud = "PAD89345", Nom = "Akki", Prenom = "Pita", Email = "pita.akki@etud.u-picardie.fr" },
-        new Etudiant { Id=6,NumEtud = "RG8647FF", Nom = "Mauvaka", Prenom = "Peato", Email = "peato.mauvaka@etud.u-picardie.fr" }
+        new Etudiant { Id=1, NumEtud = "03BDKZ65", Nom = "Dupont", Prenom = "Antoine", Email = "antoine.dupont@etud.u-picardie.fr" },
+        new Etudiant { Id=2, NumEtud = "JEIZ03JZ", Nom = "Ntamak", Prenom = "Romain", Email = "roman.ntamak@etud.u-picardie.fr" },
+        new Etudiant { Id=3, NumEtud = "62830483", Nom = "Barassi", Prenom = "Pierre-Louis", Email = "pierre-louis.barassi@etud.u-picardie.fr" },
+        new Etudiant { Id=4, NumEtud = "J6HZK922", Nom = "Jelong", Prenom = "Antony", Email = "antony.jelong@etud.u-picardie.fr" },
+        new Etudiant { Id=5, NumEtud = "PAD89345", Nom = "Akki", Prenom = "Pita", Email = "pita.akki@etud.u-picardie.fr" },
+        new Etudiant { Id=6, NumEtud = "RG8647FF", Nom = "Mauvaka", Prenom = "Peato", Email = "peato.mauvaka@etud.u-picardie.fr" }
     ];
 
     private struct UserNonEtudiant
@@ -44,10 +43,10 @@ public class BasicBdBuilder(IRepositoryFactory repositoryFactory) : BdBuilder(re
 
     private readonly Parcours[] _parcours =
     [
-        new Parcours { Id=1,NomParcours = "M1 Informatique", AnneeFormation = 2024 },
-        new Parcours { Id=2,NomParcours = "OSIE", AnneeFormation = 2024 },
-        new Parcours { Id=3,NomParcours = "ITD", AnneeFormation = 2024 },
-        new Parcours { Id=4,NomParcours = "IDD", AnneeFormation = 2024 }
+        new Parcours { Id=1, NomParcours = "M1 Informatique", AnneeFormation = 2024 },
+        new Parcours { Id=2, NomParcours = "OSIE", AnneeFormation = 2024 },
+        new Parcours { Id=3, NomParcours = "ITD", AnneeFormation = 2024 },
+        new Parcours { Id=4, NomParcours = "IDD", AnneeFormation = 2024 }
     ];
 
     private readonly Ue[] _ues =
@@ -66,7 +65,6 @@ public class BasicBdBuilder(IRepositoryFactory repositoryFactory) : BdBuilder(re
 
     private readonly Inscription[] _inscriptions =
     [
-        // EtudiantId, ParcoursId
         new Inscription { EtudiantId = 1, ParcoursId = 2 },
         new Inscription { EtudiantId = 2, ParcoursId = 1 },
         new Inscription { EtudiantId = 3, ParcoursId = 1 },
@@ -123,7 +121,6 @@ public class BasicBdBuilder(IRepositoryFactory repositoryFactory) : BdBuilder(re
 
     protected override async Task RegenererBdAsync()
     {
-        // Ici je décide de supprimer et recréer la BD
         await repositoryFactory.EnsureDeletedAsync();
         await repositoryFactory.EnsureCreatedAsync();
     }
@@ -156,7 +153,7 @@ public class BasicBdBuilder(IRepositoryFactory repositoryFactory) : BdBuilder(re
     {
         foreach (Inscription i in _inscriptions)
         {
-            await new AddEtudiantDansParcoursUseCase(repositoryFactory).ExecuteAsync(i.ParcoursId,i.EtudiantId);
+            await new AddEtudiantDansParcoursUseCase(repositoryFactory).ExecuteAsync(i.ParcoursId, i.EtudiantId);
         }
     }
 
@@ -170,39 +167,37 @@ public class BasicBdBuilder(IRepositoryFactory repositoryFactory) : BdBuilder(re
 
     protected override async Task NoterAsync()
     {
-        foreach( var note in _notes)
+        foreach(var note in _notes)
         {
-            await new AddNoteToEtudiantUseCase(repositoryFactory).ExecuteAsync(note.EtudiantId,note.UeId, note.Valeur);
+            await new AddNoteToEtudiantUseCase(repositoryFactory).ExecuteAsync(note.EtudiantId, note.UeId, note.Valeur);
         }
     }
     
     protected override async Task BuildRolesAsync()
     {
-        /*
-        // A décommenter quand on aura rajouté les rôles
+        
         // Création des rôles dans la table aspnetroles
         await new CreateUniversiteRoleUseCase(repositoryFactory).ExecuteAsync(Roles.Responsable);
         await new CreateUniversiteRoleUseCase(repositoryFactory).ExecuteAsync(Roles.Scolarite);
         await new CreateUniversiteRoleUseCase(repositoryFactory).ExecuteAsync(Roles.Etudiant);
-        */
+        
     }
 
     protected override async Task BuildUsersAsync()
     {
-        /*
-        // A décommenter quand on aura rajouté les Users
+        
         CreateUniversiteUserUseCase uc = new CreateUniversiteUserUseCase(repositoryFactory);
         // Création des étudiants
         foreach (var etudiant in _etudiants)
         {
-            await uc.ExecuteAsync(etudiant.Email, etudiant.Email, this.Password, Roles.Etudiant,etudiant);
+            await uc.ExecuteAsync(etudiant.Email, etudiant.Email, this.Password, Roles.Etudiant, etudiant);
         }
         
-        // Création des responsbles
+        // Création des responsables
         foreach (var user in _usersNonEtudiants)
         {
             await uc.ExecuteAsync(user.Email, user.Email, this.Password, user.Role, null);
         }
-        */
+        
     }
 }
